@@ -1,0 +1,26 @@
+<resources>
+    <style name="Theme.Universal" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">#89b4fa</item>
+        <item name="colorPrimaryVariant">#74c7ec</item>
+        <item name="colorOnPrimary">#ffffff</item>
+        <item name="colorSecondary">#a6e3a1</item>
+        <item name="android:colorBackground">#1e1e2e</item>
+        <item name="colorOnBackground">#cdd6f4</item>
+        <item name="colorSurface">#313244</item>
+        <item name="colorOnSurface">#cdd6f4</item>
+        <item name="android:statusBarColor">#11111b</item>
+        <item name="android:navigationBarColor">#11111b</item>
+    </style>
+
+    <style name="ToolbarTitle">
+        <item name="android:textSize">20sp</item>
+        <item name="android:textStyle">bold</item>
+        <item name="fontFamily">sans-serif-medium</item>
+    </style>
+
+    <style name="MaterialAlertDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorSurface">#313244</item>
+        <item name="colorOnSurface">#cdd6f4</item>
+        <item name="android:textColorPrimary">#cdd6f4</item>
+    </style>
+</resources>

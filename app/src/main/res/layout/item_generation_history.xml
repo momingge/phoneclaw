@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardBackgroundColor="#1e1e2e"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="6dp"
+    app:strokeColor="#45475a"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:id="@+id/userCommand"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="User Command"
+                android:textSize="16sp"
+                android:textColor="#cdd6f4"
+                android:textStyle="bold"
+                android:lineSpacingExtra="2dp" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/generatedCode"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Generated Code"
+            android:textSize="12sp"
+            android:textColor="#f2cdcd"
+            android:fontFamily="monospace"
+            android:background="@drawable/code_background"
+            android:padding="12dp"
+            android:layout_marginBottom="12dp"
+            android:maxLines="4"
+            android:ellipsize="end"
+            android:lineSpacingExtra="2dp" />
+
+        <TextView
+            android:id="@+id/timestamp"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Timestamp"
+            android:textSize="12sp"
+            android:textColor="#6c7086"
+            android:layout_marginBottom="16dp"
+            android:drawablePadding="6dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/runButton"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="4dp"
+                android:text="Run"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:backgroundTint="#a6e3a1"
+                app:cornerRadius="12dp"
+                android:textColor="#1e1e2e"
+                style="@style/Widget.Material3.Button.UnelevatedButton" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/editButton"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:layout_marginStart="2dp"
+                android:layout_marginEnd="2dp"
+                android:text="Edit"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:backgroundTint="#89b4fa"
+                app:cornerRadius="12dp"
+                android:textColor="#ffffff"
+                style="@style/Widget.Material3.Button.UnelevatedButton" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/scheduleButton"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:layout_marginStart="4dp"
+                android:text="Schedule"
+                android:textSize="8sp"
+                android:textStyle="bold"
+                app:backgroundTint="#fab387"
+                app:cornerRadius="12dp"
+                android:textColor="#1e1e2e"
+                style="@style/Widget.Material3.Button.UnelevatedButton" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>

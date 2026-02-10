@@ -1,0 +1,97 @@
+<?xml version="1.0" encoding="utf-8"?>
+<com.google.android.material.card.MaterialCardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardBackgroundColor="#1e1e2e"
+    app:cardCornerRadius="16dp"
+    app:cardElevation="6dp"
+    app:strokeColor="#45475a"
+    app:strokeWidth="1dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="20dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginBottom="12dp">
+
+            <TextView
+                android:id="@+id/taskDescription"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Task Description"
+                android:textSize="16sp"
+                android:textColor="#cdd6f4"
+                android:textStyle="bold"
+                android:lineSpacingExtra="2dp" />
+
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/cronExpression"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Cron Expression"
+            android:textSize="13sp"
+            android:textColor="#89b4fa"
+            android:background="@drawable/code_background"
+            android:padding="8dp"
+            android:fontFamily="monospace"
+            android:layout_marginBottom="12dp" />
+
+        <TextView
+            android:id="@+id/taskStatus"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Status"
+            android:textSize="12sp"
+            android:textColor="#bac2de"
+            android:layout_marginBottom="16dp"
+            android:lineSpacingExtra="1dp" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/runNowButton"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:layout_marginEnd="8dp"
+                android:text="Run Now"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                app:backgroundTint="#a6e3a1"
+                app:cornerRadius="12dp"
+                android:textColor="#1e1e2e"
+                style="@style/Widget.Material3.Button.UnelevatedButton" />
+
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/deleteTaskButton"
+                android:layout_width="0dp"
+                android:layout_height="48dp"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:text="Delete"
+                android:textSize="13sp"
+                android:textStyle="bold"
+                app:backgroundTint="#f38ba8"
+                app:cornerRadius="12dp"
+                android:textColor="#ffffff"
+                style="@style/Widget.Material3.Button.UnelevatedButton" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</com.google.android.material.card.MaterialCardView>
