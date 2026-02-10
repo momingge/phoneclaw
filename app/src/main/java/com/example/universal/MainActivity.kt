@@ -3668,7 +3668,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
                     val request = Request.Builder()
                         .url("https://openrouter.ai/api/v1/chat/completions")
                         .header("Content-Type", "application/json")
-                        .header("Authorization", "Bearer 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")
+                        .header("Authorization", "Bearer ")
                         .header("HTTP-Referer", "droidphone.com")
                         .header("X-Title", "PhoneClaw")
                         .post(requestBody)
