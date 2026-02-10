@@ -28,6 +28,13 @@ Automating Captchas:
 - Chain actions across apps (browser, email, media, messaging) inside a single flow.
 - Build flows that adapt to different device sizes, layouts, and language settings.
 
+**Setup Instructions**
+1) The cheapest phone is a $30 Moto G play you can buy at Walmart in the US. It is the phone used in the demos.
+2) Enable developer mode on your android. You do not need to root the device. 
+3) Sideload the APK by downloading it or transferring it to your android and clicking install. Click allow when it asks for permissions.
+4) When the app opens, use the voice commands to generate a simple automation like "open twitter and click the blue post button every hour"
+5) It will run the agent, schedule it, then output a file you can edit in simple language like below.
+
 **ClawScript**
 ClawScript runs inside PhoneClaw using an embedded JS engine and exposes helper functions for automation, scheduling, and screen understanding. It is designed for fast iteration: write or generate small scripts at runtime, execute them immediately, and adjust based on UI feedback.
 
