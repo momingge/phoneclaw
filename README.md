@@ -30,10 +30,11 @@ Automating Captchas:
 
 **Setup Instructions**
 1) The cheapest phone is a $30 Moto G play you can buy at Walmart in the US. It is the phone used in the demos.
-2) Enable developer mode on your android. You do not need to root the device. 
-3) Sideload the APK by downloading it or transferring it to your android and clicking install. Click allow when it asks for permissions.
-4) When the app opens, use the voice commands to generate a simple automation like "open twitter and click the blue post button every hour"
-5) It will run the agent, schedule it, then output a file you can edit in simple language like below.
+2) Enable developer mode on your android. You do not need to root the device.
+3) Download Android Studio, download this Repo, open the Repo, and click Build > Generate Bundles or APKs > Generate APKs. 
+4) Sideload the APK by downloading it or transferring it to your android and clicking install. Click allow when it asks for permissions.
+5) When the app opens, use the voice commands to generate a simple automation like "open twitter and click the blue post button every hour"
+6) It will run the agent, schedule it, then output a file you can edit in simple language like below.
 
 **ClawScript**
 ClawScript runs inside PhoneClaw using an embedded JS engine and exposes helper functions for automation, scheduling, and screen understanding. It is designed for fast iteration: write or generate small scripts at runtime, execute them immediately, and adjust based on UI feedback.
