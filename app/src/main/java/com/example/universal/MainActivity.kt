@@ -1,4 +1,5 @@
 package com.example.universal
+import com.example.universal.BuildConfig
 import android.util.Base64
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
@@ -42,9 +43,12 @@ import androidx.appcompat.app.AppCompatActivity
 import android.content.SharedPreferences
 import com.google.firebase.database.DataSnapshot
 import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.database.ValueEventListener
 import com.google.firebase.database.ktx.database
+import com.google.firebase.FirebaseApp
 import com.google.firebase.ktx.Firebase
+import com.google.firebase.storage.FirebaseStorage
 import com.google.firebase.storage.ktx.storage
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -235,6 +239,52 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
     @Volatile
     private var isDestroyed = false
 
+    private var firebaseAvailable: Boolean? = null
+
+    private fun isFirebaseAvailable(): Boolean {
+        val cached = firebaseAvailable
+        if (cached != null) return cached
+
+        val available = try {
+            FirebaseApp.getApps(this).isNotEmpty() || FirebaseApp.initializeApp(this) != null
+        } catch (e: Exception) {
+            Log.w("Firebase", "Firebase unavailable: ${e.message}")
+            false
+        }
+
+        firebaseAvailable = available
+        if (!available) {
+            Log.w("Firebase", "Firebase not configured; Firebase features disabled.")
+        }
+        return available
+    }
+
+    private fun firebaseDatabaseOrNull(action: String): FirebaseDatabase? {
+        if (!isFirebaseAvailable()) {
+            Log.w("Firebase", "Skipping $action: Firebase not configured")
+            return null
+        }
+        return try {
+            Firebase.database
+        } catch (e: Exception) {
+            Log.w("Firebase", "Firebase unavailable for $action: ${e.message}")
+            null
+        }
+    }
+
+    private fun firebaseStorageOrNull(action: String): FirebaseStorage? {
+        if (!isFirebaseAvailable()) {
+            Log.w("Firebase", "Skipping $action: Firebase not configured")
+            return null
+        }
+        return try {
+            Firebase.storage
+        } catch (e: Exception) {
+            Log.w("Firebase", "Firebase storage unavailable for $action: ${e.message}")
+            null
+        }
+    }
+
     // NEW: Memory monitoring
     private fun checkMemoryUsage(): Boolean {
         val runtime = Runtime.getRuntime()
@@ -275,6 +325,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
         output: String
     ) = withContext(Dispatchers.IO) {
         if (isDestroyed) return@withContext
+        val database = firebaseDatabaseOrNull("trackMagicRun") ?: return@withContext
 
         try {
             var index = magicRunIndex++
@@ -298,7 +349,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
                 "device_id" to phoneDeviceId
             )
 
-            val ref = Firebase.database.getReference("unit_tests")
+            val ref = database.getReference("unit_tests")
                 .child(phoneDeviceId)
                 .child(index.toString())
 
@@ -496,9 +547,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     private suspend fun savePhoneInfoToFirebase() = withContext(Dispatchers.IO) {
         if (isDestroyed) return@withContext
+        val database = firebaseDatabaseOrNull("savePhoneInfoToFirebase") ?: return@withContext
 
         try {
-            val phoneRef = Firebase.database.getReference("phones").child(phoneDeviceId)
+            val phoneRef = database.getReference("phones").child(phoneDeviceId)
 
             val phoneData = mutableMapOf<String, Any>(
                 "deviceId" to phoneDeviceId,
@@ -603,8 +655,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     private fun listenForDebugModeChanges() {
         if (isDestroyed) return
-
-        val debugRef = Firebase.database.getReference("phones").child(phoneDeviceId).child("debug_mode")
+        val database = firebaseDatabaseOrNull("listenForDebugModeChanges") ?: return
+        val debugRef = database.getReference("phones").child(phoneDeviceId).child("debug_mode")
 
         val listener = object : ValueEventListener {
             @RequiresApi(Build.VERSION_CODES.O)
@@ -638,6 +690,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     private suspend fun uploadDebugScreenshot() = withContext(Dispatchers.IO) {
         if (isDestroyed) return@withContext
+        val storage = firebaseStorageOrNull("uploadDebugScreenshot") ?: return@withContext
+        val database = firebaseDatabaseOrNull("uploadDebugScreenshot") ?: return@withContext
 
         try {
             Log.d("DebugScreenshot", "Starting debug screenshot upload for device: $phoneDeviceId")
@@ -648,7 +702,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
                 return@withContext
             }
 
-            val storageRef = Firebase.storage.reference
+            val storageRef = storage.reference
             val timestamp = System.currentTimeMillis()
             val screenshotPath = "phones/$phoneDeviceId/screenshots/screenshot_$timestamp.png"
             val screenshotRef = storageRef.child(screenshotPath)
@@ -658,7 +712,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
 
             Log.d("DebugScreenshot", "Screenshot uploaded: $downloadUrl")
 
-            val phoneRef = Firebase.database.getReference("phones").child(phoneDeviceId)
+            val phoneRef = database.getReference("phones").child(phoneDeviceId)
             val updates = mapOf(
                 "last_screenshot" to downloadUrl,
                 "last_screenshot_timestamp" to timestamp,
@@ -733,7 +787,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
                 isDebugMode = enabled
                 sharedPreferences.edit().putBoolean(KEY_DEBUG_MODE, enabled).apply()
 
-                val phoneRef = Firebase.database.getReference("phones").child(phoneDeviceId)
+                val database = firebaseDatabaseOrNull("setDebugMode") ?: return@launch
+                val phoneRef = database.getReference("phones").child(phoneDeviceId)
                 phoneRef.child("debug_mode").setValue(enabled).await()
 
                 speakText("Debug mode ${if (enabled) "enabled" else "disabled"}")
@@ -1495,7 +1550,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
     private suspend fun fetchAgentAccounts(): Map<String, String> {
         if (isDestroyed) return emptyMap()
 
-        val ref: DatabaseReference = Firebase.database.getReference("agent_accounts_fixed")
+        val database = firebaseDatabaseOrNull("fetchAgentAccounts") ?: return emptyMap()
+        val ref: DatabaseReference = database.getReference("agent_accounts_fixed")
         return try {
             val snapshot: DataSnapshot = ref.get().await()
             val map = mutableMapOf<String, String>()
@@ -1521,7 +1577,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
     private suspend fun fetchAgentAccountsInstagram(): Map<String, String> {
         if (isDestroyed) return emptyMap()
 
-        val ref: DatabaseReference = Firebase.database.getReference("agent_accounts_instagram")
+        val database = firebaseDatabaseOrNull("fetchAgentAccountsInstagram") ?: return emptyMap()
+        val ref: DatabaseReference = database.getReference("agent_accounts_instagram")
         return try {
             val snapshot: DataSnapshot = ref.get().await()
             val map = mutableMapOf<String, String>()
@@ -1548,7 +1605,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
     private suspend fun fetchAgentServerInstagram(): Map<String, String> {
         if (isDestroyed) return emptyMap()
 
-        val ref: DatabaseReference = Firebase.database.getReference("agent_accounts_instagram")
+        val database = firebaseDatabaseOrNull("fetchAgentServerInstagram") ?: return emptyMap()
+        val ref: DatabaseReference = database.getReference("agent_accounts_instagram")
         return try {
             val snapshot: DataSnapshot = ref.get().await()
             val map = mutableMapOf<String, String>()
@@ -1574,6 +1632,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
 
     private suspend fun checkAgentAccountsInstagram(agentAccount: String) {
         if (isDestroyed) return
+        val database = firebaseDatabaseOrNull("checkAgentAccountsInstagram") ?: return
 
         if (agentAccount.contains(" ")) {
             val msg = "Rejected account '$agentAccount': contains spaces"
@@ -1609,8 +1668,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
             return
         }
 
-        val ref: DatabaseReference = Firebase.database.getReference("agent_accounts_instagram")
-        val fixedRef: DatabaseReference = Firebase.database.getReference("agent_accounts_instagram_fixed")
+        val ref: DatabaseReference = database.getReference("agent_accounts_instagram")
+        val fixedRef: DatabaseReference = database.getReference("agent_accounts_instagram_fixed")
 
         val currentTimestamp = System.currentTimeMillis()
 
@@ -1747,7 +1806,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
     private suspend fun fetchAgentAccountsYoutube(): Map<String, String> {
         if (isDestroyed) return emptyMap()
 
-        val ref: DatabaseReference = Firebase.database.getReference("agent_accounts_youtube")
+        val database = firebaseDatabaseOrNull("fetchAgentAccountsYoutube") ?: return emptyMap()
+        val ref: DatabaseReference = database.getReference("agent_accounts_youtube")
         return try {
             val snapshot: DataSnapshot = ref.get().await()
             val map = mutableMapOf<String, String>()
@@ -1774,7 +1834,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
     private suspend fun fetchAgentAccountsTwitter(): Map<String, String> {
         if (isDestroyed) return emptyMap()
 
-        val ref: DatabaseReference = Firebase.database.getReference("agent_accounts_twitter")
+        val database = firebaseDatabaseOrNull("fetchAgentAccountsTwitter") ?: return emptyMap()
+        val ref: DatabaseReference = database.getReference("agent_accounts_twitter")
         return try {
             val snapshot: DataSnapshot = ref.get().await()
             val map = mutableMapOf<String, String>()
@@ -1845,9 +1906,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
 
     private suspend fun checkAgentAccountsTwitter(agentAccount: String) {
         if (isDestroyed) return
+        val database = firebaseDatabaseOrNull("checkAgentAccountsTwitter") ?: return
 
-        val ref: DatabaseReference = Firebase.database.getReference("agent_accounts_twitter")
-        val fixedRef: DatabaseReference = Firebase.database.getReference("agent_accounts_twitter_fixed")
+        val ref: DatabaseReference = database.getReference("agent_accounts_twitter")
+        val fixedRef: DatabaseReference = database.getReference("agent_accounts_twitter_fixed")
 
         val currentTimestamp = System.currentTimeMillis()
 
@@ -1916,9 +1978,10 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
 
     private suspend fun checkAgentAccountsYoutube(agentAccount: String) {
         if (isDestroyed) return
+        val database = firebaseDatabaseOrNull("checkAgentAccountsYoutube") ?: return
 
-        val ref: DatabaseReference = Firebase.database.getReference("agent_accounts_youtube")
-        val fixedRef: DatabaseReference = Firebase.database.getReference("agent_accounts_youtube_fixed")
+        val ref: DatabaseReference = database.getReference("agent_accounts_youtube")
+        val fixedRef: DatabaseReference = database.getReference("agent_accounts_youtube_fixed")
 
         val currentTimestamp = System.currentTimeMillis()
 
@@ -1988,7 +2051,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
     private suspend fun fetchAgentServerYoutube(): Map<String, String> {
         if (isDestroyed) return emptyMap()
 
-        val ref: DatabaseReference = Firebase.database.getReference("agent_accounts_youtube")
+        val database = firebaseDatabaseOrNull("fetchAgentServerYoutube") ?: return emptyMap()
+        val ref: DatabaseReference = database.getReference("agent_accounts_youtube")
         return try {
             val snapshot: DataSnapshot = ref.get().await()
             val map = mutableMapOf<String, String>()
@@ -2015,7 +2079,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
     private suspend fun fetchAgentServer(): Map<String, String> {
         if (isDestroyed) return emptyMap()
 
-        val ref: DatabaseReference = Firebase.database.getReference("agent_accounts_fixed")
+        val database = firebaseDatabaseOrNull("fetchAgentServer") ?: return emptyMap()
+        val ref: DatabaseReference = database.getReference("agent_accounts_fixed")
         return try {
             val snapshot: DataSnapshot = ref.get().await()
             val map = mutableMapOf<String, String>()
@@ -2055,6 +2120,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
 
     private suspend fun checkAgentAccounts(agentAccount: String) {
         if (isDestroyed) return
+        val database = firebaseDatabaseOrNull("checkAgentAccounts") ?: return
 
         if (agentAccount.contains(" ")) {
             val msg = "Rejected account '$agentAccount': contains spaces"
@@ -2084,8 +2150,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
             return
         }
 
-        val ref: DatabaseReference = Firebase.database.getReference("agent_accounts_fixed")
-        val fixedRef: DatabaseReference = Firebase.database.getReference("agent_accounts_fixed")
+        val ref: DatabaseReference = database.getReference("agent_accounts_fixed")
+        val fixedRef: DatabaseReference = database.getReference("agent_accounts_fixed")
 
         val currentTimestamp = System.currentTimeMillis()
 
@@ -2298,6 +2364,8 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
     @RequiresApi(Build.VERSION_CODES.O)
     private suspend fun takeScreenshotAndUploadToLogs(userEmail: String, text: String, server: String? = null) {
         if (isDestroyed) return
+        val storage = firebaseStorageOrNull("takeScreenshotAndUploadToLogs") ?: return
+        val database = firebaseDatabaseOrNull("takeScreenshotAndUploadToLogs") ?: return
 
         try {
             speakText("Taking screenshot")
@@ -2309,7 +2377,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
                 return
             }
 
-            val storageRef = Firebase.storage.reference
+            val storageRef = storage.reference
             val timestamp = System.currentTimeMillis()
             val newemail = userEmail.replace(".",",")
             val screenshotRef = storageRef.child("agentsbase/$newemail/screenshots/screenshot_$timestamp.png")
@@ -2320,7 +2388,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
             Log.i("MainActivity", successMsg)
             speakText("Screenshot uploaded successfully")
 
-            val logsRef = Firebase.database.getReference("agentsbase")
+            val logsRef = database.getReference("agentsbase")
                 .child(newemail)
                 .child("logs")
 
@@ -2451,10 +2519,11 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
 
     private fun fetchTodaysVideoSync(email: String, server: String = "1"): VideoWithKey {
         if (isDestroyed) return VideoWithKey("none", null)
+        val database = firebaseDatabaseOrNull("fetchTodaysVideoSync") ?: return VideoWithKey("none", null)
 
         return runBlocking {
             try {
-                val emailRef = Firebase.database
+                val emailRef = database
                     .getReference("videos")
                     .child(email.replace(".", ","))
                 val snapshot = emailRef.get().await()
@@ -3668,7 +3737,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
                     val request = Request.Builder()
                         .url("https://openrouter.ai/api/v1/chat/completions")
                         .header("Content-Type", "application/json")
-                        .header("Authorization", "Bearer ")
+                        .header("Authorization", "Bearer OPENROUTERKEY")
                         .header("HTTP-Referer", "droidphone.com")
                         .header("X-Title", "PhoneClaw")
                         .post(requestBody)
@@ -4827,7 +4896,14 @@ Generate JavaScript automation code for the user's command:
             Log.d("2FA", "Code timestamp: $emailKey")
 
             // Get Firebase database reference for agent_codes (not agent_accounts)
-            val agentCodesRef = Firebase.database.getReference("agent_codes").child(emailKey)
+            val database = this@MainActivity.firebaseDatabaseOrNull("retrieveLatestVerificationCode")
+            if (database == null) {
+                withContext(Dispatchers.Main) {
+                    callback(null)
+                }
+                return
+            }
+            val agentCodesRef = database.getReference("agent_codes").child(emailKey)
 
             try {
                 // Check if the verification code exists
@@ -5448,6 +5524,7 @@ Generate JavaScript automation code for the user's command:
 
         // Replace/add this function for text-based scraping using Moondream
         private suspend fun callScrapingAPI(base64Image: String, description: String): String = withContext(Dispatchers.IO) {
+
             return@withContext try {
                 val client = OkHttpClient.Builder()
                     .connectTimeout(30, TimeUnit.SECONDS)
@@ -5468,7 +5545,7 @@ Generate JavaScript automation code for the user's command:
                 val request = Request.Builder()
                     .url("https://api.moondream.ai/v1/query")
                     .header("Content-Type", "application/json")
-                    .header("X-Moondream-Auth", BuildConfig.MOONDREAM_AUTH)
+                    .header("X-Moondream-Auth", "MoondreamKEY")
                     .post(body)
                     .build()
 
@@ -5730,6 +5807,7 @@ Generate JavaScript automation code for the user's command:
         }
 
         private suspend fun callMoondreamAPI(base64Image: String, objectDescription: String): MoondreamPoint? = withContext(Dispatchers.IO) {
+
             return@withContext try {
                 val client = OkHttpClient.Builder()
                     .connectTimeout(30, TimeUnit.SECONDS)
@@ -5747,7 +5825,7 @@ Generate JavaScript automation code for the user's command:
                 val request = Request.Builder()
                     .url("https://api.moondream.ai/v1/point")
                     .header("Content-Type", "application/json")
-                    .header("X-Moondream-Auth", BuildConfig.MOONDREAM_AUTH)
+                    .header("X-Moondream-Auth", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlfaWQiOiI2YzE4ZDI4NC1lNDMzLTQxNjYtYjg4Ni1jOGY4YjIxMTc1OGEiLCJvcmdfaWQiOiJkUDFESW96ZXFTNUxEc3ByNDFXT2N6dkJuSFpOM0hXWSIsImlhdCI6MTc3MDgzNDEyNiwidmVyIjoxfQ.54YnmshifLTBAsOWGCDHR-GL6yzTV-H3EAFNimMbqLk")
                     .post(body)
                     .build()
 
@@ -7928,8 +8006,9 @@ Generate JavaScript automation code for the user's command:
         if (isDestroyed) return@withContext
 
         try {
+            val database = firebaseDatabaseOrNull("downloadRandomBrandAssets") ?: return@withContext
             val modifiedEmail = userEmail.replace(".", ",")
-            val ref = Firebase.database.getReference("agentsbase/$modifiedEmail/servers/0/brandAssets")
+            val ref = database.getReference("agentsbase/$modifiedEmail/servers/0/brandAssets")
 
             val snapshot = ref.get().await()
             if (!snapshot.exists()) {
@@ -7982,7 +8061,8 @@ Generate JavaScript automation code for the user's command:
     ): String? {
         if (isDestroyed) return null
 
-        val ref = Firebase.database.getReference("agentsbase")
+        val database = firebaseDatabaseOrNull("downloadProfileImage") ?: return null
+        val ref = database.getReference("agentsbase")
             .child(userEmail.replace(".", ","))
             .child("servers")
 
@@ -8108,7 +8188,8 @@ Generate JavaScript automation code for the user's command:
     private suspend fun fetchBio(userEmail: String, serverId: String): String {
         if (isDestroyed) return ""
 
-        val ref: DatabaseReference = Firebase.database
+        val database = firebaseDatabaseOrNull("fetchBio") ?: return ""
+        val ref: DatabaseReference = database
             .getReference("agentsbase")
             .child(userEmail.replace(".", ","))
             .child("servers")
@@ -8152,7 +8233,8 @@ Generate JavaScript automation code for the user's command:
         if (isDestroyed) return Pair(null, null)
 
         val modEmail = userEmail.replace(".", ",")
-        val ref = Firebase.database.getReference("agentsbase").child(modEmail)
+        val database = firebaseDatabaseOrNull("fetchUserPrompts") ?: return Pair(null, null)
+        val ref = database.getReference("agentsbase").child(modEmail)
 
         return try {
             val snapshot = ref.get().await()
@@ -8171,8 +8253,9 @@ Generate JavaScript automation code for the user's command:
         if (isDestroyed) return@withContext "{}"
 
         try {
+            val database = firebaseDatabaseOrNull("getAutoCommentCampaignForServer") ?: return@withContext "{}"
             val modEmail = email.replace(".", ",")
-            val ref = Firebase.database.getReference("agentsbase").child(modEmail)
+            val ref = database.getReference("agentsbase").child(modEmail)
 
             val snapshot = ref.get().await()
 
@@ -8293,7 +8376,8 @@ Generate JavaScript automation code for the user's command:
 
         GlobalScope.launch {
             try {
-                Firebase.database.getReference("videos")
+                val database = firebaseDatabaseOrNull("markVideoAsPosted") ?: return@launch
+                database.getReference("videos")
                     .child(email)
                     .child(key)
                     .child("posted")
@@ -8333,6 +8417,7 @@ Generate JavaScript automation code for the user's command:
     private suspend fun callMoondreamAPI(base64Image: String, objectDescription: String): MoondreamPoint? = withContext(Dispatchers.IO) {
         if (isDestroyed) return@withContext null
 
+
         return@withContext try {
             val client = OkHttpClient.Builder()
                 .connectTimeout(30, TimeUnit.SECONDS)
@@ -8350,7 +8435,7 @@ Generate JavaScript automation code for the user's command:
             val request = Request.Builder()
                 .url("https://api.moondream.ai/v1/point")
                 .header("Content-Type", "application/json")
-                .header("X-Moondream-Auth", BuildConfig.MOONDREAM_AUTH)
+                .header("X-Moondream-Auth", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlfaWQiOiI2YzE4ZDI4NC1lNDMzLTQxNjYtYjg4Ni1jOGY4YjIxMTc1OGEiLCJvcmdfaWQiOiJkUDFESW96ZXFTNUxEc3ByNDFXT2N6dkJuSFpOM0hXWSIsImlhdCI6MTc3MDgzNDEyNiwidmVyIjoxfQ.54YnmshifLTBAsOWGCDHR-GL6yzTV-H3EAFNimMbqLk")
                 .post(body)
                 .build()
 
