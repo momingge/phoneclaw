@@ -1,0 +1,33 @@
+name: Android CI
+
+on:
+  workflow_dispatch: # 允许你手动点击运行
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: set up JDK 17
+      uses: actions/setup-java@v4
+      with:
+        java-version: '17'
+        distribution: 'temurin'
+        cache: gradle
+
+    - name: Grant execute permission for gradlew
+      run: chmod +x gradlew
+
+    - name: Build with Gradle
+      run: |
+        echo "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJrZXlfaWQiOiJjOGE2NzA2Ny00MTEyLTQ0MzAtYWRiZi03YTgyYWFkNzcyMjYiLCJvcmdfaWQiOiJsdVVsYWF0cm1PY01HN1NhSUkyVmFVQmpyT1ZhN3FoeCIsImlhdCI6MTc3MTE1Mzg4NywidmVyIjoxfQ.g_J1-Kr_syxim-DFsYVSDzBlxQtPaK8nuPqiYAE6XbA" > local.properties
+        ./gradlew assembleDebug
+
+
+    - name: Upload APK
+      uses: actions/upload-artifact@v4
+      with:
+        name: phoneclaw-debug-apk
+        path: app/build/outputs/apk/debug/*.apk
