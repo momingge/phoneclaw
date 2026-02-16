@@ -3720,7 +3720,7 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
                     }
 
                     val requestBodyJson = JSONObject().apply {
-                        put("model", currentModel)
+                        put("model", "deepseek-chat")
                         put("messages", openRouterMessages)
                         put("max_tokens", maxTokens)
                         put("temperature", if (mode == "fast") 0.7 else 0.3)
@@ -3735,9 +3735,9 @@ class MainActivity : AppCompatActivity(), TextToSpeech.OnInitListener, Recogniti
                     val requestBody = requestBodyJson.toString().toRequestBody(mediaType)
 
                     val request = Request.Builder()
-                        .url("https://openrouter.ai/api/v1/chat/completions")
+                        .url("https://api.deepseek.com/chat/completions")
                         .header("Content-Type", "application/json")
-                        .header("Authorization", "Bearer OPENROUTERKEY")
+                        .header("Authorization", "Bearer sk-0ec4c048f3ca4abdab5ead0982824be0") 
                         .header("HTTP-Referer", "droidphone.com")
                         .header("X-Title", "PhoneClaw")
                         .post(requestBody)
